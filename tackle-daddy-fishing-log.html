@@ -580,14 +580,18 @@
             document.getElementById('syncCounter').textContent = `Catches to sync: ${catches.length}`;
         }
 
-        // Sync with Google Apps Script using form submission method
-async function syncData() {
+       async function syncData() {
+    console.log('=== HTML SYNC DEBUG START ===');
+    
     if (!navigator.onLine) {
         alert('You are offline. Connect to internet to sync data.');
         return;
     }
 
     const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+    console.log('Catches from localStorage:', catches);
+    console.log('Number of catches to sync:', catches.length);
+    
     if (catches.length === 0) {
         alert('No data to sync!');
         return;
@@ -598,6 +602,8 @@ async function syncData() {
     syncBtn.textContent = '⏳ Syncing...';
     syncBtn.disabled = true;
 
+    console.log('Apps Script URL:', CONFIG.GOOGLE_APPS_SCRIPT_URL);
+
     try {
         // Create a hidden form to submit data
         const form = document.createElement('form');
@@ -606,13 +612,17 @@ async function syncData() {
         form.style.display = 'none';
 
         // Add data as form field
+        const dataToSend = {
+            action: 'syncCatches',
+            catches: catches
+        };
+        
+        console.log('Data being sent:', dataToSend);
+
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = 'data';
-        input.value = JSON.stringify({
-            action: 'syncCatches',
-            catches: catches
-        });
+        input.value = JSON.stringify(dataToSend);
 
         form.appendChild(input);
         document.body.appendChild(form);
@@ -625,8 +635,11 @@ async function syncData() {
         
         document.body.appendChild(iframe);
         
+        console.log('Submitting form to:', form.action);
+        
         // Handle response
         iframe.onload = function() {
+            console.log('iframe loaded, form submitted');
             try {
                 const response = iframe.contentDocument.body.textContent;
                 console.log('Sync response:', response);
@@ -636,28 +649,7 @@ async function syncData() {
                 updateDisplay();
                 alert(`✅ Successfully synced ${catches.length} catches!`);
             } catch (error) {
-                console.log('Sync completed (response not readable due to CORS, but likely successful)');
-                // Clear data anyway since Google Apps Script probably received it
-                localStorage.removeItem('offlineCatches');
-                updateDisplay();
-                alert(`✅ Sync completed! Check your Google Sheet for ${catches.length} new entries.`);
-            }
-            
-            // Cleanup
-            document.body.removeChild(form);
-            document.body.removeChild(iframe);
-        };
-
-        form.submit();
-
-    } catch (error) {
-        alert('❌ Sync failed. Your data is still saved offline.');
-        console.error('Sync error:', error);
-    } finally {
-        syncBtn.textContent = originalText;
-        syncBtn.disabled = false;
-    }
-}
+                console.log('Sync completed (response not readabl
 
         // Update Display
         function updateDisplay() {
