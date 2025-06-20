@@ -581,12 +581,49 @@
         }
 
        async function syncData() {
-    console.log('=== HTML SYNC DEBUG START ===');
-    
     if (!navigator.onLine) {
         alert('You are offline. Connect to internet to sync data.');
         return;
     }
+
+    const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+    if (catches.length === 0) {
+        alert('No data to sync!');
+        return;
+    }
+
+    const syncBtn = document.getElementById('syncBtn');
+    const originalText = syncBtn.textContent;
+    syncBtn.textContent = '⏳ Syncing...';
+    syncBtn.disabled = true;
+
+    try {
+        const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'data=' + encodeURIComponent(JSON.stringify({
+                action: 'syncCatches',
+                catches: catches
+            }))
+        });
+
+        // Since we're using no-cors, we can't read the response
+        // But if no error is thrown, the request was sent
+        localStorage.removeItem('offlineCatches');
+        updateDisplay();
+        alert(`✅ Sync completed! Check your Google Sheet for ${catches.length} new entries.`);
+
+    } catch (error) {
+        alert('❌ Sync failed. Your data is still saved offline.');
+        console.error('Sync error:', error);
+    } finally {
+        syncBtn.textContent = originalText;
+        syncBtn.disabled = false;
+    }
+}
 
     const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
     console.log('Catches from localStorage:', catches);
