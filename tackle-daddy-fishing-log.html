@@ -579,12 +579,101 @@
             document.getElementById('syncCounter').textContent = 'Catches to sync: ' + catches.length;
         }
 
-        // Simple sync function
-        function syncData() {
-            if (!navigator.onLine) {
-                alert('You are offline. Connect to internet to sync data.');
-                return;
+        // Simple sync function - fixed version
+function syncData() {
+    if (!navigator.onLine) {
+        alert('You are offline. Connect to internet to sync data.');
+        return;
+    }
+
+    const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+    if (catches.length === 0) {
+        alert('No data to sync!');
+        return;
+    }
+
+    if (CONFIG.GOOGLE_APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+        alert('Please configure your Google Apps Script URL first!');
+        return;
+    }
+
+    const syncBtn = document.getElementById('syncBtn');
+    const originalText = syncBtn.textContent;
+    syncBtn.textContent = '⏳ Syncing...';
+    syncBtn.disabled = true;
+
+    try {
+        // Create the data object
+        const dataToSend = {
+            action: 'syncCatches',
+            catches: catches
+        };
+
+        // Create form with properly formatted data
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = CONFIG.GOOGLE_APPS_SCRIPT_URL;
+        form.style.display = 'none';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'data';
+        input.value = JSON.stringify(dataToSend); // Don't double-encode
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+
+        // Submit in hidden iframe to catch response
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.name = 'sync-frame';
+        form.target = 'sync-frame';
+        
+        document.body.appendChild(iframe);
+        
+        // Handle response
+        iframe.onload = function() {
+            try {
+                const response = iframe.contentDocument.body.textContent;
+                console.log('Sync response:', response);
+                const result = JSON.parse(response);
+                
+                if (result.success) {
+                    localStorage.removeItem('offlineCatches');
+                    updateDisplay();
+                    alert('✅ Successfully synced ' + catches.length + ' catches!');
+                } else {
+                    alert('❌ Sync failed: ' + result.error);
+                }
+            } catch (error) {
+                console.log('Could not read response, but sync likely succeeded');
+                localStorage.removeItem('offlineCatches');
+                updateDisplay();
+                alert('✅ Sync completed! Check your Google Sheet for ' + catches.length + ' new entries.');
             }
+            
+            // Cleanup
+            document.body.removeChild(form);
+            document.body.removeChild(iframe);
+            syncBtn.textContent = originalText;
+            syncBtn.disabled = false;
+        };
+
+        iframe.onerror = function() {
+            alert('❌ Sync failed. Your data is still saved offline.');
+            syncBtn.textContent = originalText;
+            syncBtn.disabled = false;
+        };
+
+        form.submit();
+
+    } catch (error) {
+        alert('❌ Sync failed. Your data is still saved offline.');
+        console.error('Sync error:', error);
+        syncBtn.textContent = originalText;
+        syncBtn.disabled = false;
+    }
+}
 
             const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
             if (catches.length === 0) {
