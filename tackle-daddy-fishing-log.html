@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎣 Bahamas Fishing Log</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .online { background-color: #28a745; }
+        .offline { background-color: #dc3545; }
+
+        .content {
+            padding: 20px;
+        }
+
+        .user-section {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .trip-section {
+            background: #f3e5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .trip-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #5a6268);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #e83e8c);
+        }
+
+        .btn-small {
+            flex: 1;
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+
+        .catches-list {
+            margin-top: 20px;
+        }
+
+        .catch-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .sync-info {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .gps-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .trip-info {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎣 Bahamas Fishing Log</h1>
+            <p>Offline-Ready Fishing Tracker</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Checking...</span>
+            </div>
+            <div id="syncCounter">Catches to sync: 0</div>
+        </div>
+
+        <div class="content">
+            <!-- User Setup Section -->
+            <div class="user-section">
+                <h3>🧑‍🎣 Angler Identity</h3>
+                <div id="userNotSet">
+                    <div class="form-group">
+                        <label for="username">Your Name/ID:</label>
+                        <input type="text" id="username" placeholder="Enter your name or tester ID">
+                    </div>
+                    <button class="btn btn-small" onclick="setUser()">Set Angler</button>
+                </div>
+                <div id="userSet" class="hidden">
+                    <div class="trip-info">
+                        <p><strong>Current Angler:</strong> <span id="currentUserName"></span></p>
+                        <p><small>Set on: <span id="userSetDate"></span></small></p>
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="clearUser()">Change Angler</button>
+                </div>
+            </div>
+
+            <!-- Trip Management Section -->
+            <div class="trip-section">
+                <h3>🚤 Fishing Trip</h3>
+                <div id="noTripActive">
+                    <p>No active trip</p>
+                    <button class="btn btn-success" onclick="startTrip()">Start Fishing Trip</button>
+                </div>
+                <div id="tripActive" class="hidden">
+                    <div class="trip-info">
+                        <p><strong>Trip Started:</strong> <span id="tripStartTime"></span></p>
+                        <p><strong>Duration:</strong> <span id="tripDuration">0:00</span></p>
+                        <p><strong>Catches This Trip:</strong> <span id="tripCatchCount">0</span></p>
+                    </div>
+                    <div class="trip-controls">
+                        <button class="btn btn-danger btn-small" onclick="endTrip()">End Trip</button>
+                        <button class="btn btn-secondary btn-small" onclick="pauseTrip()">Pause</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Information -->
+            <div id="syncInfo" class="sync-info hidden">
+                <strong>📶 Sync Status:</strong> <span id="syncStatus">Ready to sync</span>
+            </div>
+
+            <!-- Catch Logging Form -->
+            <div id="catchForm">
+                <h3>🐟 Log Your Catch</h3>
+                
+                <div class="form-group">
+                    <label for="species">Fish Species:</label>
+                    <select id="species">
+                        <option value="">Select Species</option>
+                        <option value="Mahi-Mahi">Mahi-Mahi</option>
+                        <option value="Wahoo">Wahoo</option>
+                        <option value="Yellowfin Tuna">Yellowfin Tuna</option>
+                        <option value="Blackfin Tuna">Blackfin Tuna</option>
+                        <option value="Blue Marlin">Blue Marlin</option>
+                        <option value="White Marlin">White Marlin</option>
+                        <option value="Sailfish">Sailfish</option>
+                        <option value="Barracuda">Barracuda</option>
+                        <option value="Grouper">Grouper</option>
+                        <option value="Snapper">Snapper</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="customSpecies">Custom Species (if Other):</label>
+                    <input type="text" id="customSpecies" placeholder="Enter fish species">
+                </div>
+
+                <div class="form-group">
+                    <label for="size">Size (inches):</label>
+                    <input type="number" id="size" placeholder="Length in inches">
+                </div>
+
+                <div class="form-group">
+                    <label for="weight">Weight (lbs):</label>
+                    <input type="number" id="weight" step="0.1" placeholder="Weight in pounds">
+                </div>
+
+                <div class="form-group">
+                    <label for="bait">Bait/Lure:</label>
+                    <input type="text" id="bait" placeholder="What did you use?">
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Notes:</label>
+                    <textarea id="notes" rows="3" placeholder="Any additional notes..."></textarea>
+                </div>
+
+                <button class="btn" onclick="getCurrentLocation()">📍 Get Current Location</button>
+                <div id="gpsStatus" class="gps-info"></div>
+
+                <button class="btn btn-success" onclick="logCatch()">🎣 Log This Catch</button>
+            </div>
+
+            <!-- Offline Catches Display -->
+            <div class="catches-list">
+                <h3>📋 Recent Catches</h3>
+                <div id="catchesList"></div>
+            </div>
+
+            <!-- Sync Button -->
+            <button class="btn" onclick="syncData()" id="syncBtn">☁️ Sync with Cloud</button>
+        </div>
+    </div>
+
+    <script>
+        //Configuration - UPDATE THESE WITH YOUR ACTUAL VALUES
+        const CONFIG = {
+            GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw-tDSTEYgNWImElvevVH0mXG6mskUQXJmCt6jeOysBGjEDrZxzVkACxHFunpx7zAfalQ/exec', 
+            WEATHER_API_KEY: 'ec3872b5f45282fe90f8c1c1ce7724e8' 
+        };
+
+        // Global state
+        let currentUser = null;
+        let currentTrip = null;
+        let currentLocation = null;
+        let tripTimer = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStoredData();
+            updateStatus();
+            checkOnlineStatus();
+            updateDisplay();
+            
+            // Check online status periodically
+            setInterval(checkOnlineStatus, 5000);
+        });
+
+        // User Management
+        function setUser() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                alert('Please enter your name or tester ID');
+                return;
+            }
+            
+            currentUser = {
+                name: username,
+                id: username.toLowerCase().replace(/\s+/g, '_'),
+                setAt: new Date().toISOString()
+            };
+            
+            localStorage.setItem('fishingLogUser', JSON.stringify(currentUser));
+            updateDisplay();
+            alert(`✅ Welcome ${username}! Your name is now saved and will be remembered.`);
+        }
+
+        function clearUser() {
+            currentUser = null;
+            localStorage.removeItem('fishingLogUser');
+            document.getElementById('username').value = '';
+            updateDisplay();
+            alert('User cleared. You can now set a new angler identity.');
+        }
+
+        // Trip Management
+        function startTrip() {
+            if (currentTrip) {
+                alert('Trip already in progress!');
+                return;
+            }
+
+            currentTrip = {
+                id: Date.now().toString(),
+                user: currentUser?.name || 'Unknown',
+                startTime: new Date().toISOString(),
+                catches: [],
+                status: 'active'
+            };
+
+            localStorage.setItem('currentTrip', JSON.stringify(currentTrip));
+            startTripTimer();
+            updateDisplay();
+            
+            // Log trip start to catches for syncing
+            const tripStartCatch = {
+                id: Date.now().toString(),
+                user: currentUser?.name || 'Unknown',
+                tripId: currentTrip.id,
+                type: 'trip_start',
+                timestamp: new Date().toISOString(),
+                location: currentLocation
+            };
+            
+            saveOfflineCatch(tripStartCatch);
+        }
+
+        function endTrip() {
+            if (!currentTrip) {
+                alert('No active trip to end!');
+                return;
+            }
+
+            const tripDuration = Date.now() - new Date(currentTrip.startTime).getTime();
+            currentTrip.endTime = new Date().toISOString();
+            currentTrip.duration = tripDuration;
+            currentTrip.status = 'completed';
+
+            // Log trip end
+            const tripEndCatch = {
+                id: Date.now().toString(),
+                user: currentUser?.name || 'Unknown',
+                tripId: currentTrip.id,
+                type: 'trip_end',
+                timestamp: new Date().toISOString(),
+                duration: Math.round(tripDuration / 60000), // duration in minutes
+                catchCount: currentTrip.catches.length,
+                location: currentLocation
+            };
+
+            saveOfflineCatch(tripEndCatch);
+
+            // Save completed trip to history
+            let tripHistory = JSON.parse(localStorage.getItem('tripHistory') || '[]');
+            tripHistory.push(currentTrip);
+            localStorage.setItem('tripHistory', JSON.stringify(tripHistory));
+
+            // Clear current trip
+            currentTrip = null;
+            localStorage.removeItem('currentTrip');
+            clearInterval(tripTimer);
+            updateDisplay();
+        }
+
+        function pauseTrip() {
+            // Implementation for pausing trips
+            alert('Trip paused - click Start Trip to resume');
+        }
+
+        function startTripTimer() {
+            if (tripTimer) clearInterval(tripTimer);
+            
+            tripTimer = setInterval(() => {
+                if (currentTrip) {
+                    updateTripDuration();
+                }
+            }, 1000);
+        }
+
+        function updateTripDuration() {
+            if (!currentTrip) return;
+            
+            const now = Date.now();
+            const start = new Date(currentTrip.startTime).getTime();
+            const duration = now - start;
+            
+            const hours = Math.floor(duration / 3600000);
+            const minutes = Math.floor((duration % 3600000) / 60000);
+            
+            document.getElementById('tripDuration').textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        // Location Services
+        function getCurrentLocation() {
+            const gpsStatus = document.getElementById('gpsStatus');
+            gpsStatus.textContent = '📍 Getting location...';
+
+            if (!navigator.geolocation) {
+                gpsStatus.textContent = '❌ GPS not supported on this device';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    currentLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    gpsStatus.innerHTML = `✅ Location captured<br>Lat: ${currentLocation.latitude.toFixed(6)}<br>Lng: ${currentLocation.longitude.toFixed(6)}`;
+                },
+                function(error) {
+                    gpsStatus.textContent = `❌ GPS Error: ${error.message}`;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                }
+            );
+        }
+
+        // Catch Logging
+        function logCatch() {
+            if (!currentUser) {
+                alert('Please set your angler identity first!');
+                return;
+            }
+
+            const species = document.getElementById('species').value || document.getElementById('customSpecies').value;
+            if (!species) {
+                alert('Please select or enter a fish species!');
+                return;
+            }
+
+            const catchData = {
+                id: Date.now().toString(),
+                user: currentUser.name,
+                tripId: currentTrip?.id || null,
+                type: 'catch',
+                timestamp: new Date().toISOString(),
+                species: species,
+                size: document.getElementById('size').value,
+                weight: document.getElementById('weight').value,
+                bait: document.getElementById('bait').value,
+                notes: document.getElementById('notes').value,
+                location: currentLocation
+            };
+
+            saveOfflineCatch(catchData);
+            
+            // Add to current trip if active
+            if (currentTrip) {
+                currentTrip.catches.push(catchData.id);
+                localStorage.setItem('currentTrip', JSON.stringify(currentTrip));
+            }
+
+            // Clear form
+            document.getElementById('species').value = '';
+            document.getElementById('customSpecies').value = '';
+            document.getElementById('size').value = '';
+            document.getElementById('weight').value = '';
+            document.getElementById('bait').value = '';
+            document.getElementById('notes').value = '';
+            document.getElementById('gpsStatus').textContent = '';
+
+            updateDisplay();
+            alert('🎣 Catch logged successfully!');
+        }
+
+        // Data Management
+        function saveOfflineCatch(catchData) {
+            let catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+            catches.push(catchData);
+            localStorage.setItem('offlineCatches', JSON.stringify(catches));
+        }
+
+        function loadStoredData() {
+            // Load user
+            const storedUser = localStorage.getItem('fishingLogUser');
+            if (storedUser) {
+                currentUser = JSON.parse(storedUser);
+            }
+
+            // Load current trip
+            const storedTrip = localStorage.getItem('currentTrip');
+            if (storedTrip) {
+                currentTrip = JSON.parse(storedTrip);
+                if (currentTrip.status === 'active') {
+                    startTripTimer();
+                }
+            }
+        }
+
+        // Online/Offline Status
+        function checkOnlineStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (navigator.onLine) {
+                statusDot.className = 'status-dot online';
+                statusText.textContent = 'Online';
+            } else {
+                statusDot.className = 'status-dot offline';
+                statusText.textContent = 'Offline';
+            }
+            
+            updateSyncCounter();
+        }
+
+        function updateSyncCounter() {
+            const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+            document.getElementById('syncCounter').textContent = `Catches to sync: ${catches.length}`;
+        }
+
+        // Sync with Google Apps Script
+        async function syncData() {
+            if (!navigator.onLine) {
+                alert('You are offline. Connect to internet to sync data.');
+                return;
+            }
+
+            const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+            if (catches.length === 0) {
+                alert('No data to sync!');
+                return;
+            }
+
+            const syncBtn = document.getElementById('syncBtn');
+            const originalText = syncBtn.textContent;
+            syncBtn.textContent = '⏳ Syncing...';
+            syncBtn.disabled = true;
+
+            try {
+                const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'syncCatches',
+                        catches: catches
+                    })
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('offlineCatches');
+                    updateDisplay();
+                    alert(`✅ Successfully synced ${catches.length} catches!`);
+                } else {
+                    throw new Error('Sync failed');
+                }
+            } catch (error) {
+                alert('❌ Sync failed. Your data is still saved offline.');
+                console.error('Sync error:', error);
+            } finally {
+                syncBtn.textContent = originalText;
+                syncBtn.disabled = false;
+            }
+        }
+
+        // Update Display
+        function updateDisplay() {
+            // Update user display
+            if (currentUser) {
+                document.getElementById('userNotSet').classList.add('hidden');
+                document.getElementById('userSet').classList.remove('hidden');
+                document.getElementById('currentUserName').textContent = currentUser.name;
+                document.getElementById('userSetDate').textContent = new Date(currentUser.setAt).toLocaleDateString();
+            } else {
+                document.getElementById('userNotSet').classList.remove('hidden');
+                document.getElementById('userSet').classList.add('hidden');
+            }
+
+            // Update trip display
+            if (currentTrip && currentTrip.status === 'active') {
+                document.getElementById('noTripActive').classList.add('hidden');
+                document.getElementById('tripActive').classList.remove('hidden');
+                document.getElementById('tripStartTime').textContent = new Date(currentTrip.startTime).toLocaleString();
+                document.getElementById('tripCatchCount').textContent = currentTrip.catches.length;
+                updateTripDuration();
+            } else {
+                document.getElementById('noTripActive').classList.remove('hidden');
+                document.getElementById('tripActive').classList.add('hidden');
+            }
+
+            // Update catches list
+            displayRecentCatches();
+            updateSyncCounter();
+        }
+
+        function displayRecentCatches() {
+            const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+            const catchesList = document.getElementById('catchesList');
+            
+            if (catches.length === 0) {
+                catchesList.innerHTML = '<p>No catches logged yet.</p>';
+                return;
+            }
+
+            const recentCatches = catches.slice(-5).reverse(); // Show last 5 catches
+            catchesList.innerHTML = recentCatches.map(catch_ => {
+                if (catch_.type === 'catch') {
+                    return `
+                        <div class="catch-item">
+                            <strong>${catch_.species}</strong> by ${catch_.user}<br>
+                            ${catch_.size ? `Size: ${catch_.size}"` : ''} 
+                            ${catch_.weight ? `Weight: ${catch_.weight}lbs` : ''}<br>
+                            <small>${new Date(catch_.timestamp).toLocaleString()}</small>
+                        </div>
+                    `;
+                } else if (catch_.type === 'trip_start') {
+                    return `
+                        <div class="catch-item" style="border-left-color: #28a745;">
+                            <strong>🚤 Trip Started</strong> by ${catch_.user}<br>
+                            <small>${new Date(catch_.timestamp).toLocaleString()}</small>
+                        </div>
+                    `;
+                } else if (catch_.type === 'trip_end') {
+                    return `
+                        <div class="catch-item" style="border-left-color: #dc3545;">
+                            <strong>🏁 Trip Ended</strong> by ${catch_.user}<br>
+                            Duration: ${catch_.duration} minutes, Catches: ${catch_.catchCount}<br>
+                            <small>${new Date(catch_.timestamp).toLocaleString()}</small>
+                        </div>
+                    `;
+                }
+                return '';
+            }).join('');
+        }
+
+        // Update status periodically
+        function updateStatus() {
+            checkOnlineStatus();
+            updateDisplay();
+        }
+    </script>
+</body>
+</html>
