@@ -675,51 +675,6 @@ function syncData() {
     }
 }
 
-            const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
-            if (catches.length === 0) {
-                alert('No data to sync!');
-                return;
-            }
-
-            if (CONFIG.GOOGLE_APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-                alert('Please configure your Google Apps Script URL first!');
-                return;
-            }
-
-            const syncBtn = document.getElementById('syncBtn');
-            const originalText = syncBtn.textContent;
-            syncBtn.textContent = '⏳ Syncing...';
-            syncBtn.disabled = true;
-
-            // Create form and submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = CONFIG.GOOGLE_APPS_SCRIPT_URL;
-            form.target = '_blank';
-            
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'data';
-            input.value = JSON.stringify({
-                action: 'syncCatches',
-                catches: catches
-            });
-            
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-
-            // Clear data and update display
-            setTimeout(function() {
-                localStorage.removeItem('offlineCatches');
-                updateDisplay();
-                syncBtn.textContent = originalText;
-                syncBtn.disabled = false;
-                alert('✅ Sync submitted! Check your Google Sheet for new entries.');
-            }, 2000);
-        }
-
         // Update Display
         function updateDisplay() {
             // Update user display
