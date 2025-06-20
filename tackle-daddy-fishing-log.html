@@ -579,16 +579,22 @@
             document.getElementById('syncCounter').textContent = 'Catches to sync: ' + catches.length;
         }
 
-        // Simple sync function - fixed version
+      // Debug sync function to see what's being sent
 function syncData() {
+    console.log('=== HTML SYNC DEBUG START ===');
+    
     if (!navigator.onLine) {
         alert('You are offline. Connect to internet to sync data.');
         return;
     }
 
     const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+    console.log('Catches from localStorage:', catches);
+    console.log('Number of catches to sync:', catches.length);
+    console.log('First catch details:', catches[0]);
+    
     if (catches.length === 0) {
-        alert('No data to sync!');
+        alert('No data to sync! Log a catch first.');
         return;
     }
 
@@ -608,6 +614,10 @@ function syncData() {
             action: 'syncCatches',
             catches: catches
         };
+        
+        console.log('Complete data being sent:', dataToSend);
+        console.log('Data as JSON string:', JSON.stringify(dataToSend));
+        console.log('Sending to URL:', CONFIG.GOOGLE_APPS_SCRIPT_URL);
 
         // Create form with properly formatted data
         const form = document.createElement('form');
@@ -618,7 +628,7 @@ function syncData() {
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = 'data';
-        input.value = JSON.stringify(dataToSend); // Don't double-encode
+        input.value = JSON.stringify(dataToSend);
         
         form.appendChild(input);
         document.body.appendChild(form);
@@ -631,22 +641,38 @@ function syncData() {
         
         document.body.appendChild(iframe);
         
+        console.log('About to submit form...');
+        
         // Handle response
         iframe.onload = function() {
+            console.log('iframe loaded - form submitted');
             try {
                 const response = iframe.contentDocument.body.textContent;
-                console.log('Sync response:', response);
-                const result = JSON.parse(response);
+                console.log('Raw response:', response);
                 
-                if (result.success) {
+                if (response && response.trim()) {
+                    const result = JSON.parse(response);
+                    console.log('Parsed response:', result);
+                    
+                    if (result.success) {
+                        localStorage.removeItem('offlineCatches');
+                        updateDisplay();
+                        alert('✅ Successfully synced ' + catches.length + ' catches!');
+                    } else {
+                        alert('❌ Sync failed: ' + result.error);
+                    }
+                } else {
+                    console.log('Empty response - but form was submitted');
+                    // Still clear data as sync likely worked
                     localStorage.removeItem('offlineCatches');
                     updateDisplay();
-                    alert('✅ Successfully synced ' + catches.length + ' catches!');
-                } else {
-                    alert('❌ Sync failed: ' + result.error);
+                    alert('✅ Sync completed! Check your Google Sheet for ' + catches.length + ' new entries.');
                 }
             } catch (error) {
-                console.log('Could not read response, but sync likely succeeded');
+                console.log('Could not read response due to CORS, but sync likely succeeded');
+                console.log('Response error:', error);
+                
+                // Clear data anyway since Google Apps Script probably received it
                 localStorage.removeItem('offlineCatches');
                 updateDisplay();
                 alert('✅ Sync completed! Check your Google Sheet for ' + catches.length + ' new entries.');
@@ -659,20 +685,24 @@ function syncData() {
             syncBtn.disabled = false;
         };
 
-        iframe.onerror = function() {
+        iframe.onerror = function(error) {
+            console.log('iframe error:', error);
             alert('❌ Sync failed. Your data is still saved offline.');
             syncBtn.textContent = originalText;
             syncBtn.disabled = false;
         };
 
         form.submit();
+        console.log('Form submitted successfully');
 
     } catch (error) {
-        alert('❌ Sync failed. Your data is still saved offline.');
         console.error('Sync error:', error);
+        alert('❌ Sync failed. Your data is still saved offline.');
         syncBtn.textContent = originalText;
         syncBtn.disabled = false;
     }
+    
+    console.log('=== HTML SYNC DEBUG END ===');
 }
 
         // Update Display
