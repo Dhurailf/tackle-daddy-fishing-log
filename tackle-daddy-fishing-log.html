@@ -238,11 +238,6 @@
                 </div>
             </div>
 
-            <!-- Sync Information -->
-            <div id="syncInfo" class="sync-info hidden">
-                <strong>📶 Sync Status:</strong> <span id="syncStatus">Ready to sync</span>
-            </div>
-
             <!-- Catch Logging Form -->
             <div id="catchForm">
                 <h3>🐟 Log Your Catch</h3>
@@ -308,10 +303,10 @@
     </div>
 
     <script>
-        //Configuration - UPDATE THESE WITH YOUR ACTUAL VALUES
+        // Configuration - UPDATE THESE WITH YOUR ACTUAL VALUES
         const CONFIG = {
-            GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzV1FTjUWm65Zj3szByHWcUT8FwqN86RGPlmkEnRRxlmv5cUHt3-uyscVfGWgTU9Eqd-w/exec', 
-            WEATHER_API_KEY: 'ec3872b5f45282fe90f8c1c1ce7724e8' 
+            GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzV1FTjUWm65Zj3szByHWcUT8FwqN86RGPlmkEnRRxlmv5cUHt3-uyscVfGWgTU9Eqd-w/exec',
+            WEATHER_API_KEY: 'ec3872b5f45282fe90f8c1c1ce7724e8'
         };
 
         // Global state
@@ -347,7 +342,7 @@
             
             localStorage.setItem('fishingLogUser', JSON.stringify(currentUser));
             updateDisplay();
-            alert(`✅ Welcome ${username}! Your name is now saved and will be remembered.`);
+            alert('Welcome ' + username + '! Your name is now saved and will be remembered.');
         }
 
         function clearUser() {
@@ -365,9 +360,14 @@
                 return;
             }
 
+            if (!currentUser) {
+                alert('Please set your angler identity first!');
+                return;
+            }
+
             currentTrip = {
                 id: Date.now().toString(),
-                user: currentUser?.name || 'Unknown',
+                user: currentUser.name,
                 startTime: new Date().toISOString(),
                 catches: [],
                 status: 'active'
@@ -380,7 +380,7 @@
             // Log trip start to catches for syncing
             const tripStartCatch = {
                 id: Date.now().toString(),
-                user: currentUser?.name || 'Unknown',
+                user: currentUser.name,
                 tripId: currentTrip.id,
                 type: 'trip_start',
                 timestamp: new Date().toISOString(),
@@ -404,7 +404,7 @@
             // Log trip end
             const tripEndCatch = {
                 id: Date.now().toString(),
-                user: currentUser?.name || 'Unknown',
+                user: currentUser.name,
                 tripId: currentTrip.id,
                 type: 'trip_end',
                 timestamp: new Date().toISOString(),
@@ -423,19 +423,18 @@
             // Clear current trip
             currentTrip = null;
             localStorage.removeItem('currentTrip');
-            clearInterval(tripTimer);
+            if (tripTimer) clearInterval(tripTimer);
             updateDisplay();
         }
 
         function pauseTrip() {
-            // Implementation for pausing trips
             alert('Trip paused - click Start Trip to resume');
         }
 
         function startTripTimer() {
             if (tripTimer) clearInterval(tripTimer);
             
-            tripTimer = setInterval(() => {
+            tripTimer = setInterval(function() {
                 if (currentTrip) {
                     updateTripDuration();
                 }
@@ -452,7 +451,7 @@
             const hours = Math.floor(duration / 3600000);
             const minutes = Math.floor((duration % 3600000) / 60000);
             
-            document.getElementById('tripDuration').textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
+            document.getElementById('tripDuration').textContent = hours + ':' + minutes.toString().padStart(2, '0');
         }
 
         // Location Services
@@ -474,10 +473,10 @@
                         timestamp: new Date().toISOString()
                     };
                     
-                    gpsStatus.innerHTML = `✅ Location captured<br>Lat: ${currentLocation.latitude.toFixed(6)}<br>Lng: ${currentLocation.longitude.toFixed(6)}`;
+                    gpsStatus.innerHTML = '✅ Location captured<br>Lat: ' + currentLocation.latitude.toFixed(6) + '<br>Lng: ' + currentLocation.longitude.toFixed(6);
                 },
                 function(error) {
-                    gpsStatus.textContent = `❌ GPS Error: ${error.message}`;
+                    gpsStatus.textContent = '❌ GPS Error: ' + error.message;
                 },
                 {
                     enableHighAccuracy: true,
@@ -503,7 +502,7 @@
             const catchData = {
                 id: Date.now().toString(),
                 user: currentUser.name,
-                tripId: currentTrip?.id || null,
+                tripId: currentTrip ? currentTrip.id : null,
                 type: 'catch',
                 timestamp: new Date().toISOString(),
                 species: species,
@@ -577,116 +576,60 @@
 
         function updateSyncCounter() {
             const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
-            document.getElementById('syncCounter').textContent = `Catches to sync: ${catches.length}`;
+            document.getElementById('syncCounter').textContent = 'Catches to sync: ' + catches.length;
         }
 
-       async function syncData() {
-    if (!navigator.onLine) {
-        alert('You are offline. Connect to internet to sync data.');
-        return;
-    }
+        // Simple sync function
+        function syncData() {
+            if (!navigator.onLine) {
+                alert('You are offline. Connect to internet to sync data.');
+                return;
+            }
 
-    const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
-    if (catches.length === 0) {
-        alert('No data to sync!');
-        return;
-    }
+            const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
+            if (catches.length === 0) {
+                alert('No data to sync!');
+                return;
+            }
 
-    const syncBtn = document.getElementById('syncBtn');
-    const originalText = syncBtn.textContent;
-    syncBtn.textContent = '⏳ Syncing...';
-    syncBtn.disabled = true;
+            if (CONFIG.GOOGLE_APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                alert('Please configure your Google Apps Script URL first!');
+                return;
+            }
 
-    try {
-        const response = await fetch(CONFIG.GOOGLE_APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'data=' + encodeURIComponent(JSON.stringify({
+            const syncBtn = document.getElementById('syncBtn');
+            const originalText = syncBtn.textContent;
+            syncBtn.textContent = '⏳ Syncing...';
+            syncBtn.disabled = true;
+
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = CONFIG.GOOGLE_APPS_SCRIPT_URL;
+            form.target = '_blank';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'data';
+            input.value = JSON.stringify({
                 action: 'syncCatches',
                 catches: catches
-            }))
-        });
+            });
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
 
-        // Since we're using no-cors, we can't read the response
-        // But if no error is thrown, the request was sent
-        localStorage.removeItem('offlineCatches');
-        updateDisplay();
-        alert(`✅ Sync completed! Check your Google Sheet for ${catches.length} new entries.`);
-
-    } catch (error) {
-        alert('❌ Sync failed. Your data is still saved offline.');
-        console.error('Sync error:', error);
-    } finally {
-        syncBtn.textContent = originalText;
-        syncBtn.disabled = false;
-    }
-}
-
-    const catches = JSON.parse(localStorage.getItem('offlineCatches') || '[]');
-    console.log('Catches from localStorage:', catches);
-    console.log('Number of catches to sync:', catches.length);
-    
-    if (catches.length === 0) {
-        alert('No data to sync!');
-        return;
-    }
-
-    const syncBtn = document.getElementById('syncBtn');
-    const originalText = syncBtn.textContent;
-    syncBtn.textContent = '⏳ Syncing...';
-    syncBtn.disabled = true;
-
-    console.log('Apps Script URL:', CONFIG.GOOGLE_APPS_SCRIPT_URL);
-
-    try {
-        // Create a hidden form to submit data
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = CONFIG.GOOGLE_APPS_SCRIPT_URL;
-        form.style.display = 'none';
-
-        // Add data as form field
-        const dataToSend = {
-            action: 'syncCatches',
-            catches: catches
-        };
-        
-        console.log('Data being sent:', dataToSend);
-
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'data';
-        input.value = JSON.stringify(dataToSend);
-
-        form.appendChild(input);
-        document.body.appendChild(form);
-
-        // Submit form in a hidden iframe
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.name = 'sync-frame';
-        form.target = 'sync-frame';
-        
-        document.body.appendChild(iframe);
-        
-        console.log('Submitting form to:', form.action);
-        
-        // Handle response
-        iframe.onload = function() {
-            console.log('iframe loaded, form submitted');
-            try {
-                const response = iframe.contentDocument.body.textContent;
-                console.log('Sync response:', response);
-                
-                // Clear offline data on successful sync
+            // Clear data and update display
+            setTimeout(function() {
                 localStorage.removeItem('offlineCatches');
                 updateDisplay();
-                alert(`✅ Successfully synced ${catches.length} catches!`);
-            } catch (error) {
-                console.log('Sync completed (response not readabl
+                syncBtn.textContent = originalText;
+                syncBtn.disabled = false;
+                alert('✅ Sync submitted! Check your Google Sheet for new entries.');
+            }, 2000);
+        }
 
         // Update Display
         function updateDisplay() {
@@ -728,31 +671,19 @@
             }
 
             const recentCatches = catches.slice(-5).reverse(); // Show last 5 catches
-            catchesList.innerHTML = recentCatches.map(catch_ => {
+            catchesList.innerHTML = recentCatches.map(function(catch_) {
                 if (catch_.type === 'catch') {
-                    return `
-                        <div class="catch-item">
-                            <strong>${catch_.species}</strong> by ${catch_.user}<br>
-                            ${catch_.size ? `Size: ${catch_.size}"` : ''} 
-                            ${catch_.weight ? `Weight: ${catch_.weight}lbs` : ''}<br>
-                            <small>${new Date(catch_.timestamp).toLocaleString()}</small>
-                        </div>
-                    `;
+                    return '<div class="catch-item"><strong>' + catch_.species + '</strong> by ' + catch_.user + '<br>' +
+                           (catch_.size ? 'Size: ' + catch_.size + '"' : '') + ' ' +
+                           (catch_.weight ? 'Weight: ' + catch_.weight + 'lbs' : '') + '<br>' +
+                           '<small>' + new Date(catch_.timestamp).toLocaleString() + '</small></div>';
                 } else if (catch_.type === 'trip_start') {
-                    return `
-                        <div class="catch-item" style="border-left-color: #28a745;">
-                            <strong>🚤 Trip Started</strong> by ${catch_.user}<br>
-                            <small>${new Date(catch_.timestamp).toLocaleString()}</small>
-                        </div>
-                    `;
+                    return '<div class="catch-item" style="border-left-color: #28a745;"><strong>🚤 Trip Started</strong> by ' + catch_.user + '<br>' +
+                           '<small>' + new Date(catch_.timestamp).toLocaleString() + '</small></div>';
                 } else if (catch_.type === 'trip_end') {
-                    return `
-                        <div class="catch-item" style="border-left-color: #dc3545;">
-                            <strong>🏁 Trip Ended</strong> by ${catch_.user}<br>
-                            Duration: ${catch_.duration} minutes, Catches: ${catch_.catchCount}<br>
-                            <small>${new Date(catch_.timestamp).toLocaleString()}</small>
-                        </div>
-                    `;
+                    return '<div class="catch-item" style="border-left-color: #dc3545;"><strong>🏁 Trip Ended</strong> by ' + catch_.user + '<br>' +
+                           'Duration: ' + catch_.duration + ' minutes, Catches: ' + catch_.catchCount + '<br>' +
+                           '<small>' + new Date(catch_.timestamp).toLocaleString() + '</small></div>';
                 }
                 return '';
             }).join('');
